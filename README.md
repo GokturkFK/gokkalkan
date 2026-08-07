@@ -10,11 +10,28 @@ bağlanmaya çalışan bir AI agent, egress proxy tarafından **kesilir**; panel
 Critical alarm + imzalı action receipt üretilir — meşru bir tool çağrısı ise
 hiçbir engelle karşılaşmaz.
 
-> Durum: iskelet aşaması (GKO-1/GKO-5 tamamlandı). Proxy'nin
-> interception/allowlist/enforcement mantığı (GK-A, GK-B) henüz yazılmadı —
-> bkz. PROJECT_PLAN.md ve açık [issue'lar](../../issues).
+> Durum: iskelet aşaması. Boot binary + altyapı + CI ayakta (GKO-1, GKO-5);
+> proxy'nin interception/allowlist/enforcement mantığı (GK-A, GK-B) henüz
+> yazılmadı.
 
-Sprint 0 tasarım kararları (teknik eşlemesi + şema): [docs/DECISIONS.md](docs/DECISIONS.md).
+## Nereden başlanır
+
+**Tüm işler [issue](../../issues) olarak açık ve atanmış.** Etiketler:
+`cyber` = @fetihcakmak (güvenlik çekirdeği), `devops` = @uzunkubra50
+(platform/teslimat/wiring). Hangi dosya kimin: [CODEOWNERS](CODEOWNERS).
+
+| Sıra | Issue | Kim |
+|---|---|---|
+| **1. ÖNCE BU** | [#1 GK-S0](../../issues/1) — Sprint 0 tasarım kararı (`blocker`) | @fetihcakmak |
+| 2 | [#2 GK-A1](../../issues/2) egress proxy · [#4 GK-B1](../../issues/4) agent honeypot | @fetihcakmak |
+| 3 | [#3 GK-A2](../../issues/3) jailbreak tespiti | @fetihcakmak |
+| 4 | [#6](../../issues/6) migration · [#7](../../issues/7) enforcement wiring | @uzunkubra50 |
+| 5 | [#8](../../issues/8) imzalı receipt · [#9](../../issues/9) panel | @uzunkubra50 |
+| son | [#5 GK-F1](../../issues/5) tehdit modeli + demo GIF | @fetihcakmak |
+
+#1 bitmeden hiçbir şey başlayamaz (hem GK-A/GK-B hem DevOps wiring ona bağlı).
+Somut bir öneri hazır — üstüne "tamam" veya "hayır, şöyle olmalı" demek yeterli:
+[docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Mimari
 
