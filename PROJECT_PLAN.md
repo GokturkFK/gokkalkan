@@ -6,10 +6,15 @@
 > **DevOps** (`@uzunkubra50`) = platform, teslimat, ops + korelasyon/enforcement wiring,
 > panel, imzalama — GÖKTÜRK'teki sahiplik deseninin aynısı (bkz. `gokturk-deception-mesh/PROJECT PLAN.md` böl. 5).
 >
-> Bu, Göktürk platformunun P2'sidir (bkz. `GOKTURKFK_ROADMAP.md`, özel repo).
-> **Ön koşul (G1 kapısı) geçildi:** GÖKTÜRK v0.1 DoD tamamlandı, `gokturk-core`
-> (`TrapProvider`, `TripEvent`/`Alert` şeması, `correlate.Evaluate`) ayrı, kararlı
-> bir modül olarak yayında. GÖKKALKAN onu import eder, kopyalamaz.
+> Bu, Göktürk platformunun ikinci ürünüdür; ilki
+> [GÖKTÜRK](https://github.com/GokturkFK/gokturk-deception-mesh) (deception mesh).
+> Platform kuralı: **aynı anda tek aktif ürün** — bir ürün kendi DoD'sine
+> ulaşmadan sonraki başlatılmaz.
+>
+> **Ön koşul geçildi:** GÖKTÜRK v0.1 DoD tamamlandı ve ortak omurga
+> [gokturk-core](https://github.com/GokturkFK/gokturk-core) `v0.1.0` olarak
+> ayrıldı (`trap.Provider`, `TripEvent`/`Alert` şeması, `correlate.Evaluate`).
+> GÖKKALKAN onu import eder, kopyalamaz.
 
 ---
 
