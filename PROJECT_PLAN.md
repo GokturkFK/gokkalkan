@@ -59,6 +59,11 @@ GÖKTÜRK'ten farklı olarak wire contract sıfırdan yazılmıyor —
 Bu iki karar netleşmeden GK-A/GK-B kod yazımı başlamaz (GÖKTÜRK'teki "önce
 sözleşmeleri dondur" kuralının aynısı).
 
+> **Somut öneri hazır:** [docs/DECISIONS.md](docs/DECISIONS.md) — teknik eşlemesi
+> için `AML.T0053` / `AML.T0110.000` (MITRE ATLAS 2026.07'den doğrulanmış) ve
+> agent/allowlist/honeypot şeması taslağı. @fetihcakmak onaylayınca kesinleşir
+> (issue #1); değişirse o dosya güncellenir.
+
 ---
 
 ## 4. Görevler — CYBER (güvenlik çekirdeği)
