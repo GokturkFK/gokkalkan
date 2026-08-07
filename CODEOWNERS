@@ -1,0 +1,21 @@
+# Bkz. PROJECT_PLAN.md bol. 4-5 (gorev/sahiplik dokumu) ve acik issue'lar.
+# Bolusum GOKTURK'teki (gokturk-deception-mesh/CODEOWNERS) ile ayni mantikta:
+# guvenlik cekirdegi Cyber'de, platform/teslimat/wiring DevOps'ta.
+
+# Varsayilan sahip
+*                      @fetihcakmak @uzunkubra50
+
+# Cyber (guvenlik cekirdegi) — proxy tespit/politika mantigi + tuzaklar
+# Bu dizinler HENUZ YOK; GK-A/GK-B geldikce olusacak (issue #2, #3, #4).
+/internal/proxy/       @fetihcakmak
+/internal/honeypot/    @fetihcakmak
+/docs/THREAT_MODEL.md  @fetihcakmak
+
+# DevOps (platform/teslimat/wiring)
+/deployments/          @uzunkubra50
+/migrations/           @uzunkubra50
+/.github/              @uzunkubra50
+/cmd/                  @uzunkubra50
+/internal/config/      @uzunkubra50
+/Makefile              @uzunkubra50
+/.golangci.yml         @uzunkubra50
