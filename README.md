@@ -12,7 +12,9 @@ hiçbir engelle karşılaşmaz.
 
 > Durum: iskelet aşaması (GKO-1/GKO-5 tamamlandı). Proxy'nin
 > interception/allowlist/enforcement mantığı (GK-A, GK-B) henüz yazılmadı —
-> bkz. PROJECT_PLAN.md.
+> bkz. PROJECT_PLAN.md ve açık [issue'lar](../../issues).
+
+Sprint 0 tasarım kararları (teknik eşlemesi + şema): [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Mimari
 
