@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  GO_VERSION: "1.26"
+
+jobs:
+  build-test:
+    name: Build, vet, test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gokkalkan
+          POSTGRES_PASSWORD: gokkalkan
+          POSTGRES_DB: gokkalkan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U gokkalkan"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test (race detector, all packages)
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Coverage gate (>= 70%)
+        run: |
+          go tool cover -func=coverage.txt > coverage.summary.txt || true
+          TOTAL=$(grep total coverage.summary.txt | awk '{print $3}' | tr -d '%')
+          if [ -z "$TOTAL" ]; then
+            echo "coverage verisi yok"; exit 0
+          fi
+          echo "Toplam kapsam: ${TOTAL}%"
+          awk -v t="$TOTAL" 'BEGIN { exit (t+0 < 70) }'
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.txt
+          if-no-files-found: ignore
+
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  docker-gokkalkan:
+    name: Docker build (gokkalkan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f deployments/docker/gokkalkan.Dockerfile -t gokturk/gokkalkan:ci .
+      - name: Trivy scan (fail on HIGH/CRITICAL, fixli CVE'ler)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: gokturk/gokkalkan:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

@@ -1,0 +1,11 @@
+coverage.txt
+coverage.summary.txt
+coverage.html
+bin/
+dist/
+
+# Ortam dosyalari (sirlar) — sadece .env.example takip edilir
+deployments/docker/.env
+
+.DS_Store
+Thumbs.db
