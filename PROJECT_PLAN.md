@@ -104,6 +104,10 @@ sözleşmeleri dondur" kuralının aynısı).
   OWASP Agentic Top 10 eşlemesi, README mimari bölümü, demo GIF.
   - *Sahip:* @fetihcakmak
   - *AC:* README'de mimari diyagram + tehdit modeli + demo GIF (GÖKTÜRK APP-11 muadili).
+  - *Durum:* mimari diyagram (README) + tehdit modeli (docs/THREAT_MODEL.md)
+    tamamlandı. Demo GIF, GKO-2 (korelasyon→enforcement wiring) tamamlanıp
+    proxy/honeypot/detect tek bir çalışan binary'de birleşene kadar
+    eklenemez — henüz kaydedilecek çalışan bir akış yok.
 
 ---
 
