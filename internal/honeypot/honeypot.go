@@ -65,8 +65,9 @@ type Provider struct {
 }
 
 // NewProvider, verilen Store ve NameGenerator ile bir Provider kurar.
-// idFn/now testlerde deterministik üretim için değiştirilebilir; production'da
-// nil bırakılırsa varsayılanlar kullanılır (uuid.NewString, time.Now).
+// idFn zorunludur (örn. production'da google/uuid.NewString) — nil
+// bırakılırsa Provision hata döner, sessizce boş/çakışan ID üretmez.
+// now nil bırakılırsa time.Now kullanılır.
 func NewProvider(store Store, names NameGenerator, idFn func() string, now func() time.Time) *Provider {
 	if now == nil {
 		now = time.Now
@@ -147,6 +148,10 @@ func NewDecoder(store Store, idFn func() string) *Decoder {
 
 // Decode, gokturk-core/trap.Decoder sözleşmesini karşılar.
 func (d *Decoder) Decode(obs trap.RawObservation) (*trap.TripEvent, error) {
+	if d.idFn == nil {
+		return nil, errors.New("honeypot: idFn tanimli degil")
+	}
+
 	inv, err := parseInvocation(obs)
 	if err != nil {
 		return nil, fmt.Errorf("honeypot: gozlem cozumlenemedi: %w", err)
