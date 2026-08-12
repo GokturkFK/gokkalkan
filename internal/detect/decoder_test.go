@@ -3,6 +3,7 @@ package detect
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,11 +29,20 @@ func TestDecoder_Decode_PoisonedDescriptionDetected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if ev.EventID != "evt-1" || ev.TrapID != "helper-tool" || ev.Source != "agent-1" || ev.Sensor != "mcp-proxy" {
+	if ev.EventID != "evt-1" || ev.Source != "agent-1" || ev.Sensor != "mcp-proxy" {
 		t.Errorf("TripEvent alanlari beklenmedik: %+v", ev)
 	}
 	if !ev.ObservedAt.Equal(when) {
 		t.Errorf("ObservedAt = %v, istenen %v", ev.ObservedAt, when)
+	}
+	// TrapID bilerek BOS: zehirlenmis tool bizim ektigimiz bir tuzak degil
+	// (bkz. decoder.go'daki gerekce ve migrations/00004).
+	if ev.TrapID != "" {
+		t.Errorf("TrapID = %q, bos olmaliydi (tuzak icermeyen tespit)", ev.TrapID)
+	}
+	// Hangi tool oldugu bilgisi kaybolmamali — raw icinde durmali.
+	if !strings.Contains(string(ev.Raw), "helper-tool") {
+		t.Errorf("tool adi raw icinde bulunamadi: %s", ev.Raw)
 	}
 }
 

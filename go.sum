@@ -1,2 +1,4 @@
 github.com/GokturkFK/gokturk-core v0.1.0 h1:niY5dMptEm9apxPootW3Ov0OsdW096fA+aiPDnSr1W0=
 github.com/GokturkFK/gokturk-core v0.1.0/go.mod h1:I6flzY7nEb/fVm4dpZyCmomkdjHpapp6VU4+inxzQWU=
+github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
+github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
