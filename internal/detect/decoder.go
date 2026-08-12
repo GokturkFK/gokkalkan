@@ -66,9 +66,15 @@ func (d *Decoder) Decode(obs trap.RawObservation) (*trap.TripEvent, error) {
 		return nil, fmt.Errorf("detect: raw marshal hatasi: %w", err)
 	}
 
+	// TrapID bilerek BOS: bu senaryoda bizim ektigimiz bir tuzak yok.
+	// Zehirlenmis tool disaridan gelen, mesru gorunumlu bir tool'dur ve
+	// honeypot_tools'ta bulunmaz. TrapID'ye tool adini yazmak, sozlesmenin
+	// "hangi tuzak tetiklendi" anlamini bozuyor ve trip_events.trap_id
+	// (uuid + honeypot_tools FK, migrations/00003) ile catisiyordu --
+	// GKO-2 wiring'inde gercek Postgres'e karsi dogrulandi.
+	// Hangi tool oldugu asagida raw icinde tam olarak duruyor.
 	return &trap.TripEvent{
 		EventID:    d.idFn(),
-		TrapID:     inv.ToolName,
 		Sensor:     obs.Sensor,
 		Source:     inv.AgentID,
 		ObservedAt: obs.ObservedAt,

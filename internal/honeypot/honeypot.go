@@ -24,6 +24,13 @@ import (
 // TypeCredentialCanary'nin muadili; core'a taşınmadı çünkü ürün-özel).
 const TypeAgentHoneypot = "agent_honeypot"
 
+// TechniqueToolInvocation, bu tuzağın tetiklenmesinden doğan alarmın
+// correlate.Evaluate'e geçirilecek ATLAS teknik kodudur: AML.T0053
+// (AI Agent Tool Invocation) — agent, meşru işi olmayan bir tool'u çağırdı.
+// docs/DECISIONS.md Karar 1'de onaylandı; detect.TechniqueToolPoisoning
+// (AML.T0110.000) ile aynı desende, farklı senaryo.
+const TechniqueToolInvocation = "AML.T0053"
+
 // Tool, bir agent'ın gördüğü sahte MCP tool tanımıdır — provision anında
 // üretilir ve honeypot_tools tablosuna yazılır (bkz. migrations/00002).
 type Tool struct {
