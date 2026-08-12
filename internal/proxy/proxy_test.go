@@ -193,6 +193,32 @@ func TestEvaluate_PathTraversalNormalizedBeforeMatch(t *testing.T) {
 	}
 }
 
+// URL-encoded traversal/ayrac karakterleri ("%2e%2e/", "%2f", "%5c") bu
+// paketin gordugu ham string uzerinde path.Clean tarafindan cozulmez —
+// gercek transport katmani (GKO-2) bunlari farkli bir asamada decode
+// edebilir (parser-differential). Guvenli varsayilan: encode edilmis
+// metakarakter tasiyan path dogrudan reddedilir.
+func TestEvaluate_EncodedTraversalDenied(t *testing.T) {
+	store := newFakeStore()
+	store.statuses["agent-1"] = AgentStatus{}
+	store.allowlists["agent-1"] = []AllowlistEntry{{Method: "*", Host: "api.github.com", PathPrefix: "/repos"}}
+
+	e := NewEnforcer(store)
+
+	cases := []string{
+		"/repos/%2e%2e/%2e%2e/secrets",
+		"/repos%2f..%2f..%2fsecrets",
+		"/repos\\..\\..\\secrets",
+		"/repos/%00/secrets",
+	}
+	for _, p := range cases {
+		d := e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: p})
+		if d.Allowed {
+			t.Errorf("encoded traversal path'ine izin verildi: %q", p)
+		}
+	}
+}
+
 // Host/Method karsilastirmasi case-insensitive olmali; aksi halde
 // "Api.Github.Com" gibi bir case varyasyonu deny-by-default'u yanlislikla
 // tetikleyip meslu cagriyi da engelleyebilir (sifir-FP ihlali).

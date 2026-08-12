@@ -104,7 +104,35 @@ func matches(entry AllowlistEntry, req Request) bool {
 	if !strings.EqualFold(entry.Host, req.Host) {
 		return false
 	}
+	if hasAmbiguousPathMetacharacters(req.Path) {
+		return false
+	}
 	return pathWithinPrefix(req.Path, entry.PathPrefix)
+}
+
+// hasAmbiguousPathMetacharacters, req.Path'te duz "\" veya percent-encoded
+// ".", "/", "\" gecmesi durumunda true doner (parser-differential
+// path-traversal).
+// Bu paket path.Clean ile KENDI gordugu ham string'i normalize eder, ama
+// req.Path'i buraya besleyen gercek transport katmani (GKO-2 wiring, henuz
+// yazilmadi) URL decode'u FARKLI bir asamada/kuralla yapabilir. Iki taraf
+// ayni ham string'i "%2e%2e/" gibi farkli path olarak yorumlarsa, buradaki
+// izin karari ile hedefe fiilen giden istek uyusmaz (enforcement bypass).
+// Guvenli varsayilan: encode edilmis metakarakter tasiyan hicbir path,
+// decode edilip yeniden yorumlanmadan burada degerlendirilmez, dogrudan
+// reddedilir. Gercek decode/normalize sorumlulugu GKO-2'nin transport
+// katmaninda, tek bir yerde ve buraya girmeden once yapilmali.
+func hasAmbiguousPathMetacharacters(p string) bool {
+	if strings.Contains(p, "\\") {
+		return true
+	}
+	lower := strings.ToLower(p)
+	for _, pattern := range []string{"%2e", "%2f", "%5c", "%00"} {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // pathWithinPrefix, req'in normalize edilmiş yolunun (".."/"." temizlenmiş,
