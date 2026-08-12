@@ -1,12 +1,15 @@
-// GKO-1: proje iskeleti. Sadece boot + config + healthz + graceful shutdown.
+// GÖKKALKAN binary'si.
 //
-// Egress proxy'nin interception/allowlist/enforcement mantığı (GK-A, GK-B)
-// bilinçli olarak burada DEĞİL — bu iskelet, o mantığın üzerine oturacağı
-// çalışan bir binary sağlar (PROJECT_PLAN.md EPIC GK-C, GKO-1/GKO-2).
+// GKO-1'de yalnızca boot + /healthz iskeletiydi; GKO-4 ile artık Postgres'e
+// bağlanıp okuma API'sini sunuyor (GET /api/v1/alerts, /api/v1/receipts).
+// Egress proxy'nin isteği fiilen taşıyan katmanı henüz burada değil — karar
+// (internal/proxy), kanıt (internal/mediator) ve korelasyon
+// (internal/enforce) hazır, onları bir dinleyiciye bağlamak sonraki iş.
 package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -15,8 +18,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/GokturkFK/gokkalkan/internal/api"
 	"github.com/GokturkFK/gokkalkan/internal/config"
+	"github.com/GokturkFK/gokkalkan/internal/store"
 	"github.com/GokturkFK/gokturk-core/trap"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -34,11 +40,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	db, err := sql.Open("postgres", cfg.DBDSN)
+	if err != nil {
+		logger.Error("postgres surucusu acilamadi", "err", err)
+		os.Exit(1)
+	}
+	defer func() { _ = db.Close() }()
+
+	pingCtx, cancelPing := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelPing()
+	if err := db.PingContext(pingCtx); err != nil {
+		logger.Error("postgres'e baglanilamadi", "err", err)
+		os.Exit(1)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
+	api.New(store.New(db), logger).Routes(mux)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
