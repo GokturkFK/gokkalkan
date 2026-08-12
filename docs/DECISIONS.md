@@ -1,8 +1,8 @@
 # GK-S0 · Sprint 0 tasarım kararları
 
-> **Durum:** öneri — @fetihcakmak onaylayınca kesinleşir (issue #1).
-> DevOps tarafı bloke olmasın diye somut bir başlangıç noktası olarak yazıldı;
-> nihai söz güvenlik çekirdeğinin sahibinde. Değiştirirsen bu dosyayı güncelle,
+> **Durum:** onaylandı (@fetihcakmak, 2026-08-12) — issue #1 kapatılabilir.
+> Karar 1 ve Karar 2 aşağıdaki haliyle kesinleşmiştir; GK-A1, GK-A2, GK-B1,
+> GKO-6 başlayabilir. Değişiklik ihtiyacı çıkarsa bu dosya güncellenir,
 > `internal/`'daki kod ve `migrations/` ona göre şekillenir.
 
 GÖKKALKAN'da wire contract zaten donuk (`gokturk-core` v0.1.0). Geriye bu ürüne
