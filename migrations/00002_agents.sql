@@ -39,6 +39,7 @@ CREATE TABLE honeypot_tools (
 -- honeypot_tools.id olarak doldurmaya baslamasindan SONRA, ayri bir
 -- migration'da yapilacak (mevcut veride uyumsuz/bos deger riski var).
 -- Burada sadece agent/allowlist/honeypot semasi eklenir.
+-- GK-B1 merge edildikten sonra bkz. 00003_trip_events_trap_fk.sql.
 
 -- +goose Down
 DROP TABLE IF EXISTS honeypot_tools;
