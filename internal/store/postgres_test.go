@@ -45,10 +45,12 @@ func setupStore(t *testing.T) *Store {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 
-	for _, tbl := range []string{"trip_events", "alerts", "agent_allowlist", "agents", "honeypot_tools"} {
-		if _, err := db.Exec("DROP TABLE IF EXISTS " + tbl + " CASCADE"); err != nil {
-			t.Fatalf("%s dusurulemedi: %v", tbl, err)
-		}
+	// Semayi KOMPLE sifirla. Elle bakilan bir tablo listesi yerine bunun
+	// tercih edilmesinin somut sebebi: 00005 (action_receipts) eklendiginde
+	// liste guncellenmedigi icin ikinci kosuda "relation already exists"
+	// ile patladi. Boyle bir liste her yeni migration'da sessizce eskir.
+	if _, err := db.Exec(`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`); err != nil {
+		t.Fatalf("sema sifirlanamadi: %v", err)
 	}
 	applySchema(t, db)
 	return New(db)
