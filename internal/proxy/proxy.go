@@ -14,6 +14,8 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"path"
+	"strings"
 )
 
 // Request, bir agent'ın yapmaya çalıştığı dış çağrıdır.
@@ -96,18 +98,57 @@ func (e *Enforcer) Evaluate(ctx context.Context, req Request) Decision {
 }
 
 func matches(entry AllowlistEntry, req Request) bool {
-	if entry.Method != "*" && entry.Method != req.Method {
+	if entry.Method != "*" && !strings.EqualFold(entry.Method, req.Method) {
 		return false
 	}
-	if entry.Host != req.Host {
+	if !strings.EqualFold(entry.Host, req.Host) {
 		return false
 	}
-	return hasPrefix(req.Path, entry.PathPrefix)
+	if hasAmbiguousPathMetacharacters(req.Path) {
+		return false
+	}
+	return pathWithinPrefix(req.Path, entry.PathPrefix)
 }
 
-func hasPrefix(path, prefix string) bool {
-	if len(prefix) > len(path) {
-		return false
+// hasAmbiguousPathMetacharacters, req.Path'te duz "\" veya percent-encoded
+// ".", "/", "\" gecmesi durumunda true doner (parser-differential
+// path-traversal).
+// Bu paket path.Clean ile KENDI gordugu ham string'i normalize eder, ama
+// req.Path'i buraya besleyen gercek transport katmani (GKO-2 wiring, henuz
+// yazilmadi) URL decode'u FARKLI bir asamada/kuralla yapabilir. Iki taraf
+// ayni ham string'i "%2e%2e/" gibi farkli path olarak yorumlarsa, buradaki
+// izin karari ile hedefe fiilen giden istek uyusmaz (enforcement bypass).
+// Guvenli varsayilan: encode edilmis metakarakter tasiyan hicbir path,
+// decode edilip yeniden yorumlanmadan burada degerlendirilmez, dogrudan
+// reddedilir. Gercek decode/normalize sorumlulugu GKO-2'nin transport
+// katmaninda, tek bir yerde ve buraya girmeden once yapilmali.
+func hasAmbiguousPathMetacharacters(p string) bool {
+	if strings.Contains(p, "\\") {
+		return true
 	}
-	return path[:len(prefix)] == prefix
+	lower := strings.ToLower(p)
+	for _, pattern := range []string{"%2e", "%2f", "%5c", "%00"} {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// pathWithinPrefix, req'in normalize edilmiş yolunun (".."/"." temizlenmiş,
+// "//" sadeleştirilmiş) prefix ile bir path SEGMENTİ sınırında eşleştiğini
+// doğrular. Düz string prefix karşılaştırması "/repos" iznini "/repository"
+// veya "/repos/../../secrets" gibi yollara da sızdırır (allowlist-bypass /
+// path-traversal); segment sınırı ve path.Clean bunu kapatır.
+func pathWithinPrefix(reqPath, prefix string) bool {
+	cleanPath := path.Clean("/" + reqPath)
+	cleanPrefix := path.Clean("/" + prefix)
+
+	if cleanPrefix == "/" {
+		return true
+	}
+	if cleanPath == cleanPrefix {
+		return true
+	}
+	return strings.HasPrefix(cleanPath, cleanPrefix+"/")
 }

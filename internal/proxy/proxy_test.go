@@ -146,8 +146,6 @@ func TestEvaluate_PathPrefixBoundary(t *testing.T) {
 
 	e := NewEnforcer(store)
 
-	// tam prefix disina cikan bir yol (/repository, /repos ile baslamiyor gibi
-	// gorunse de string prefix eslesmesi acisindan kasitli sinir durumu)
 	d := e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: "/other"})
 	if d.Allowed {
 		t.Error("prefix disi yola izin verildi")
@@ -156,6 +154,84 @@ func TestEvaluate_PathPrefixBoundary(t *testing.T) {
 	d = e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: "/repos"})
 	if !d.Allowed {
 		t.Error("prefix ile tam eslesen yol reddedildi")
+	}
+
+	d = e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: "/repos/foo"})
+	if !d.Allowed {
+		t.Error("prefix altindaki alt yol reddedildi")
+	}
+}
+
+// "/repos" izni "/repository" gibi yaninda baska bir kelime devam eden
+// yollara sizmamali — sadece segment sinirinda (/repos veya /repos/...)
+// eslesme kabul edilmeli. Duz string prefix karsilastirmasi bunu kacirirdi.
+func TestEvaluate_PathPrefixDoesNotLeakToSiblingSegment(t *testing.T) {
+	store := newFakeStore()
+	store.statuses["agent-1"] = AgentStatus{}
+	store.allowlists["agent-1"] = []AllowlistEntry{{Method: "*", Host: "api.github.com", PathPrefix: "/repos"}}
+
+	e := NewEnforcer(store)
+	d := e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: "/repository-secrets"})
+
+	if d.Allowed {
+		t.Error("komsu segment'e (/repository-secrets) allowlist-bypass ile izin verildi")
+	}
+}
+
+// "/repos/../../secrets" gibi normalize edilmemis bir yol, path.Clean
+// uygulanmadan prefix kontrolunu atlatabilirdi (path-traversal).
+func TestEvaluate_PathTraversalNormalizedBeforeMatch(t *testing.T) {
+	store := newFakeStore()
+	store.statuses["agent-1"] = AgentStatus{}
+	store.allowlists["agent-1"] = []AllowlistEntry{{Method: "*", Host: "api.github.com", PathPrefix: "/repos"}}
+
+	e := NewEnforcer(store)
+	d := e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: "/repos/../../secrets"})
+
+	if d.Allowed {
+		t.Error("path-traversal ile normalize edilince prefix disina cikan yola izin verildi")
+	}
+}
+
+// URL-encoded traversal/ayrac karakterleri ("%2e%2e/", "%2f", "%5c") bu
+// paketin gordugu ham string uzerinde path.Clean tarafindan cozulmez —
+// gercek transport katmani (GKO-2) bunlari farkli bir asamada decode
+// edebilir (parser-differential). Guvenli varsayilan: encode edilmis
+// metakarakter tasiyan path dogrudan reddedilir.
+func TestEvaluate_EncodedTraversalDenied(t *testing.T) {
+	store := newFakeStore()
+	store.statuses["agent-1"] = AgentStatus{}
+	store.allowlists["agent-1"] = []AllowlistEntry{{Method: "*", Host: "api.github.com", PathPrefix: "/repos"}}
+
+	e := NewEnforcer(store)
+
+	cases := []string{
+		"/repos/%2e%2e/%2e%2e/secrets",
+		"/repos%2f..%2f..%2fsecrets",
+		"/repos\\..\\..\\secrets",
+		"/repos/%00/secrets",
+	}
+	for _, p := range cases {
+		d := e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: p})
+		if d.Allowed {
+			t.Errorf("encoded traversal path'ine izin verildi: %q", p)
+		}
+	}
+}
+
+// Host/Method karsilastirmasi case-insensitive olmali; aksi halde
+// "Api.Github.Com" gibi bir case varyasyonu deny-by-default'u yanlislikla
+// tetikleyip meslu cagriyi da engelleyebilir (sifir-FP ihlali).
+func TestEvaluate_HostAndMethodCaseInsensitive(t *testing.T) {
+	store := newFakeStore()
+	store.statuses["agent-1"] = AgentStatus{}
+	store.allowlists["agent-1"] = []AllowlistEntry{{Method: "get", Host: "API.GITHUB.COM", PathPrefix: "/repos"}}
+
+	e := NewEnforcer(store)
+	d := e.Evaluate(context.Background(), Request{AgentID: "agent-1", Method: "GET", Host: "api.github.com", Path: "/repos/foo"})
+
+	if !d.Allowed {
+		t.Error("case farkli ama esdeger host/method reddedildi")
 	}
 }
 
