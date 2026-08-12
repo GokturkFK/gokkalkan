@@ -14,6 +14,8 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"path"
+	"strings"
 )
 
 // Request, bir agent'ın yapmaya çalıştığı dış çağrıdır.
@@ -96,18 +98,29 @@ func (e *Enforcer) Evaluate(ctx context.Context, req Request) Decision {
 }
 
 func matches(entry AllowlistEntry, req Request) bool {
-	if entry.Method != "*" && entry.Method != req.Method {
+	if entry.Method != "*" && !strings.EqualFold(entry.Method, req.Method) {
 		return false
 	}
-	if entry.Host != req.Host {
+	if !strings.EqualFold(entry.Host, req.Host) {
 		return false
 	}
-	return hasPrefix(req.Path, entry.PathPrefix)
+	return pathWithinPrefix(req.Path, entry.PathPrefix)
 }
 
-func hasPrefix(path, prefix string) bool {
-	if len(prefix) > len(path) {
-		return false
+// pathWithinPrefix, req'in normalize edilmiş yolunun (".."/"." temizlenmiş,
+// "//" sadeleştirilmiş) prefix ile bir path SEGMENTİ sınırında eşleştiğini
+// doğrular. Düz string prefix karşılaştırması "/repos" iznini "/repository"
+// veya "/repos/../../secrets" gibi yollara da sızdırır (allowlist-bypass /
+// path-traversal); segment sınırı ve path.Clean bunu kapatır.
+func pathWithinPrefix(reqPath, prefix string) bool {
+	cleanPath := path.Clean("/" + reqPath)
+	cleanPrefix := path.Clean("/" + prefix)
+
+	if cleanPrefix == "/" {
+		return true
 	}
-	return path[:len(prefix)] == prefix
+	if cleanPath == cleanPrefix {
+		return true
+	}
+	return strings.HasPrefix(cleanPath, cleanPrefix+"/")
 }
