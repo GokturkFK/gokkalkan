@@ -10,12 +10,18 @@ bağlanmaya çalışan bir AI agent, egress proxy tarafından **kesilir**; panel
 Critical alarm + imzalı action receipt üretilir — meşru bir tool çağrısı ise
 hiçbir engelle karşılaşmaz.
 
-> Durum: güvenlik çekirdeği (GK-A, GK-B) hazır — egress proxy
-> (`internal/proxy`), agent honeypot (`internal/honeypot`) ve tool-poisoning
-> tespiti (`internal/detect`) yazıldı ve test edildi. Korelasyon→enforcement
-> wiring (GKO-2), imzalı receipt (GKO-3) ve panel entegrasyonu (GKO-4) henüz
-> yazılmadı — bu üçü olmadan proxy/honeypot bir binary içinde birbirine
-> bağlı çalışmaz.
+![GÖKKALKAN demo](docs/demo.gif)
+
+> Yukarıdaki kayıt uydurma değil: `docker compose` ile ayağa kaldırılmış
+> gerçek yığına (Postgres + gokkalkan) karşı
+> [docs/demo-script.md](docs/demo-script.md) adım adım koşularak alındı.
+> Meşru çağrı gerçekten `api.github.com`'a çıkıp 200 döner.
+
+> Durum: uçtan uca çalışıyor. Güvenlik çekirdeği (GK-A, GK-B) — egress proxy
+> (`internal/proxy`), agent honeypot (`internal/honeypot`), tool-poisoning
+> tespiti (`internal/detect`) — ve platform tarafı — korelasyon→enforcement
+> wiring (GKO-2), imzalı receipt (GKO-3), okuma API'si (GKO-4) ile bunları
+> tek istek akışında birleştiren `internal/gateway` — hazır ve test edildi.
 
 ## Nereden başlanır
 
@@ -28,10 +34,10 @@ hiçbir engelle karşılaşmaz.
 | 1 | [#1 GK-S0](../../issues/1) — Sprint 0 tasarım kararı | @fetihcakmak | ✅ tamamlandı |
 | 2 | [#2 GK-A1](../../issues/2) egress proxy · [#4 GK-B1](../../issues/4) agent honeypot | @fetihcakmak | ✅ tamamlandı |
 | 3 | [#3 GK-A2](../../issues/3) jailbreak/tool-poisoning tespiti | @fetihcakmak | ✅ tamamlandı |
-| 4 | [#5 GK-F1](../../issues/5) tehdit modeli | @fetihcakmak | mimari+tehdit modeli tamam, demo GIF GKO-2 sonrası |
+| 4 | [#5 GK-F1](../../issues/5) tehdit modeli + demo | @fetihcakmak | ✅ tamamlandı |
 | 5 | [#6](../../issues/6) migration | @uzunkubra50 | ✅ tamamlandı |
-| **SIRADA** | [#7](../../issues/7) korelasyon+enforcement wiring | @uzunkubra50 | proxy/honeypot/detect'i tek binary'de bağlar |
-| son | [#8](../../issues/8) imzalı receipt · [#9](../../issues/9) panel | @uzunkubra50 | #7'ye bağımlı |
+| 6 | [#7](../../issues/7) korelasyon+enforcement wiring | @uzunkubra50 | ✅ tamamlandı |
+| 7 | [#8](../../issues/8) imzalı receipt · [#9](../../issues/9) panel/API | @uzunkubra50 | ✅ tamamlandı |
 
 Teknik kararlar için [docs/DECISIONS.md](docs/DECISIONS.md), tehdit modeli
 için [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
