@@ -37,6 +37,39 @@ zehirlenmiş bir tool yok. Gözlemlenen olay, agent'ın yetkisi olmayan bir tool
 nasıl çalındığı (kök neden) değil, **çalınan kimlikle ne yapıldığı** (gözlenen
 davranış) üzerinden seçilmişti.
 
+### Üçüncü kaynak: gateway'de allowlist ihlali (`internal/gateway`, GKO-2)
+
+Yukarıdaki tablo iki kaynağı kapsıyordu (honeypot tetikleme, tool poisoning
+tespiti); GKO-2'de gateway'i kurarken üçüncüsü çıktı ve tabloda yeri yoktu:
+**agent, tuzağa hiç dokunmadan, allowlist dışı bir host/path'e doğrudan
+bağlanmaya çalışıyor** (`internal/gateway/gateway.go`,
+`TechniqueUnauthorizedAccess`). Bu commit'te (#7/GKO-2) geçici olarak
+`AML.T0053` kullanıldı ve kod yorumunda "GK-F1 tehdit modelinde
+netleştirilebilir" notu bırakıldı. Bu bölüm o netleştirmedir.
+
+**Neden yine `AML.T0053`, yeni bir kod değil:** ATLAS tanımı ("AI agents may
+be configured to have access to tools that are not directly accessible by
+users. Adversaries may abuse this to gain access to tools they otherwise
+wouldn't be able to use.") agent'ın **kendi erişimini, sahibi olmayan bir
+kaynağa ulaşmak için** kullanılmasını kapsıyor — egress proxy'nin engellediği
+tam olarak bu: agent, kendisine tanınmamış bir host/path'e erişmeye çalışıyor.
+Honeypot tetiklemesi de aynı davranışın (yetkisiz kaynak kullanımı) farklı bir
+gözlem yüzeyi; teknik aynı kalıyor, değişen SADECE nasıl yakalandığı.
+
+**Neden ayrı bir kod açılmadı (ör. yerel `GKO.T-EGRESS`):** İki gerekçe.
+(1) Bu, ATLAS'ın kapsadığı bir davranış — MITRE'nin taksonomisi dışına çıkıp
+uydurma bir ID basmak, panelin `technique` sütununu (ATLAS linkine
+çözümleniyor, bkz. aşağı) kırar ve dokümante edilmemiş bir sözleşme yaratırdı.
+(2) `correlate.Alert` şemasında "hangi yüzeyden yakalandı" diye ayrı bir alan
+yok; iki farklı teknik ID'siyle aynı bilgiyi kodlamak, aslında olmayan bir
+ayrımı panelde varmış gibi gösterirdi. Triage verisi ileride bu ayrımı
+gerektirirse (ör. honeypot tetiklemeleri gateway tetiklemelerinden farklı
+önceliklendirilecekse), doğru çözüm `Alert`'e bir `source`/`surface` alanı
+eklemek — teknik ID'yi bu ayrımın taşıyıcısı yapmamak.
+
+**Durum:** onaylandı — bu doküman güncellemesiyle GK-S0'ın parçası sayılır,
+ayrı bir issue açılmadı.
+
 ### İkincil eşlemeler (tehdit modeline, alarm alanına değil)
 
 - **`AML.T0051.001`** — LLM Prompt Injection: Indirect. Zehirlenme harici bir
@@ -51,17 +84,19 @@ davranış) üzerinden seçilmişti.
 
 ```go
 const (
-    TechniqueToolInvocation = "AML.T0053"     // honeypot tool cagrildi
-    TechniqueToolPoisoning  = "AML.T0110.000" // zehirli tool aciklamasi
+    TechniqueToolInvocation = "AML.T0053"     // honeypot tool cagrildi (internal/honeypot)
+    TechniqueToolPoisoning  = "AML.T0110.000" // zehirli tool aciklamasi (internal/detect)
 )
 
 alerts := correlate.Evaluate(trips, TechniqueToolInvocation)
+
+// internal/gateway/gateway.go — ayni teknik, farkli gozlem yuzeyi (yukarida gerekceli):
+const TechniqueUnauthorizedAccess = "AML.T0053" // allowlist disi dogrudan cagri
 ```
 
-Panelin teknik sütunu şu an `^T\d{4}(\.\d{3})?$` regex'iyle ATT&CK linki
-üretiyor (`dashboard/app.py`). ATLAS ID'leri bu desene uymaz — panel tarafında
-ATLAS linki (`https://atlas.mitre.org/techniques/<ID>`) için ayrı bir dal
-gerekecek. Bu **GKO-4'ün işi**, GK-A/GK-B'yi bloklamaz.
+Panelin teknik sütunu ATLAS ID'lerini `ATLAS_TECHNIQUE_RE = ^AML\.T\d{4}(\.\d{3})?$`
+regex'iyle tanıyıp `https://atlas.mitre.org/techniques/<ID>` linkine çözüyor
+(`dashboard/app.py`) — GKO-4'te tamamlandı.
 
 ---
 

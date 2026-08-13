@@ -38,13 +38,10 @@ var ErrMissingIDFunc = errors.New("gateway: idFn zorunlu")
 // TechniqueUnauthorizedAccess, allowlist disi bir cagri denemesi icin
 // correlate.Evaluate'e gecirilecek ATLAS teknik kodudur.
 //
-// docs/DECISIONS.md Karar 1, honeypot tool cagrisi (AML.T0053) ve tool
-// poisoning (AML.T0110.000) icin karar veriyor ama "agent allowlist disi
-// bir host/path'e dogrudan baglanmaya calisti" senaryosu icin ayri bir
-// teknik belirtmiyordu. AML.T0053'un ATLAS taniminin (agent, erisimi
-// olmayan bir kaynagi kullanmaya calisir) bu senaryoyu da kapsadigi
-// degerlendirilerek ayni kod kullanildi; GK-F1 tehdit modelinde
-// (docs/THREAT_MODEL.md) netlestirilebilir.
+// docs/DECISIONS.md Karar 1 "Ucuncu kaynak" bolumunde gerekcelendirildi ve
+// onaylandi: honeypot tetiklemesiyle (internal/honeypot) ayni teknik, farkli
+// gozlem yuzeyi — ikisi de agent'in erisimi olmayan bir kaynagi kullanma
+// girisimi, degisen SADECE nasil yakalandigi.
 const TechniqueUnauthorizedAccess = "AML.T0053"
 
 // EnforceEngine, karar reddedildiginde beslenecek korelasyon/enforcement
