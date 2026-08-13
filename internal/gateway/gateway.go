@@ -80,11 +80,10 @@ func New(m *mediator.Mediator, eng EnforceEngine, idFn func() string, now func()
 	}
 	rp := &httputil.ReverseProxy{
 		Director: func(r *http.Request) {
+			// Yalnizca semayi belirler. Hedef host/path, ServeHTTP'de
+			// mediator'un DOGRULADIGI kanonik degerlerden yazilir
+			// (bkz. forward) — istek burada yeniden yorumlanmaz.
 			r.URL.Scheme = "https"
-			// r.URL.Host, mediator.Handle asamasinda proxy.Request.Host
-			// olarak zaten dogrulandi (allowlist eslesmesi); burada AYNEN
-			// kullanilir, yeniden yorumlanmaz (parser-differential'a karsi
-			// internal/transport'un tek-nokta-decode ilkesiyle tutarli).
 		},
 		Transport: rt,
 	}
@@ -106,7 +105,30 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.target.ServeHTTP(w, r)
+	h.forward(w, r, res.Receipt.Host, res.Receipt.Path)
+}
+
+// forward, izin verilen cagriyi gercek hedefe iletir.
+//
+// Hedef, istekten YENIDEN cikarilmaz; mediator'un kanonik hale getirip
+// allowlist'e karsi dogruladigi (ve imzali receipt'e yazdigi) host/path
+// kullanilir. Aksi halde karar bir degere, iletme baska bir degere
+// bakabilirdi (parser-differential): allowlist'i "api.github.com" ile
+// gecip baska bir hedefe cikmak mumkun olurdu.
+//
+// Bu ayni zamanda bir zorunluluk: agent'lar proxy'ye ORIGIN-FORM istek
+// gonderir (`GET /path` + `Host:` basligi), o istekte r.URL.Host BOSTUR ve
+// ReverseProxy "no Host in request URL" ile 502 doner. Testlerde
+// httptest.NewRequest mutlak URL aldigi icin bu alan dolu gelir ve hata
+// gorunmez — bkz. TestServeHTTP_AllowedCallForwardsOverRealListener.
+func (h *Handler) forward(w http.ResponseWriter, r *http.Request, host, path string) {
+	out := r.Clone(r.Context())
+	out.URL.Host = host
+	out.URL.Path = path
+	// Hedefe giden Host basligi da dogrulanan deger olmali; aksi halde
+	// istemcinin gonderdigi ham Host basligi upstream'e sizardi.
+	out.Host = host
+	h.target.ServeHTTP(w, out)
 }
 
 // recordDenial, reddedilen bir cagriyi TripEvent'e cevirip enforce
