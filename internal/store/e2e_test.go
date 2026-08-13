@@ -5,13 +5,19 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/GokturkFK/gokkalkan/internal/detect"
 	"github.com/GokturkFK/gokkalkan/internal/enforce"
+	"github.com/GokturkFK/gokkalkan/internal/gateway"
 	"github.com/GokturkFK/gokkalkan/internal/honeypot"
+	"github.com/GokturkFK/gokkalkan/internal/mediator"
 	"github.com/GokturkFK/gokkalkan/internal/proxy"
+	"github.com/GokturkFK/gokkalkan/internal/receipt"
+	"github.com/GokturkFK/gokkalkan/internal/transport"
 	"github.com/GokturkFK/gokturk-core/correlate"
 	"github.com/GokturkFK/gokturk-core/trap"
 )
@@ -229,6 +235,111 @@ func TestE2E_LegitimateToolProducesNothing(t *testing.T) {
 	if st.Revoked {
 		t.Error("mesru kullanimda agent kesildi")
 	}
+}
+
+// Senaryo (gateway wiring): GERCEK *http.Request, GERCEK Postgres,
+// GERCEK imzali receipt. internal/gateway'in kendi birim testleri
+// mediator/enforce'u sahte ile izole ediyordu; bu test onlari da gercek
+// bilesenlerle uctan uca kapatir — DoD madde 1-3'un fiilen calistigini
+// dogrulayan tek yer burasi.
+//
+// Senaryo: allowlist disi bir host'a 2 kez cagri -> tek Critical + agent
+// GERCEKTEN kesilir; imzali receipt'ler her cagri icin kalici yazilir ve
+// receipt.Verify ile dogrulanir.
+func TestE2E_GatewayDeniesUnauthorizedCallAndRevokesAgent(t *testing.T) {
+	s := setupStore(t)
+	ctx := context.Background()
+
+	agentID := newAgent(t, s, "agent-gateway")
+	// Allowlist BOS birakildi: her cagri deny-by-default reddedilir.
+
+	seedHex := "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
+	signer, err := receipt.NewSignerFromSeed(seedHex)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	enforcer := proxy.NewEnforcer(s)
+	med := mediator.New(enforcer, signer, s, nil)
+	engine := enforce.New(s, quiet())
+
+	ids := &seqID{}
+	gw, err := gateway.New(med, engine, ids.next, nil, refusingTransport{}, quiet())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	doCall := func() *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "https://evil.example.com/steal", nil)
+		r.Header.Set(transport.HeaderAgentID, agentID)
+		w := httptest.NewRecorder()
+		gw.ServeHTTP(w, r)
+		return w
+	}
+
+	// 1. cagri -> 403, High alarm, agent henuz kesilmemis.
+	w := doCall()
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("1. cagri status = %d, istenen %d", w.Code, http.StatusForbidden)
+	}
+	st, err := s.AgentStatus(ctx, agentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Revoked {
+		t.Fatal("ilk reddedilen cagridan sonra agent kesilmemeliydi")
+	}
+
+	// 2. cagri (ayni kaynaktan) -> tek Critical + agent KESILIR.
+	w = doCall()
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("2. cagri status = %d, istenen %d", w.Code, http.StatusForbidden)
+	}
+	st, err = s.AgentStatus(ctx, agentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.Revoked {
+		t.Fatal("2. reddedilen cagridan sonra agent kesilmeliydi")
+	}
+
+	alerts, err := s.Alerts(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(alerts) != 1 || alerts[0].Severity != correlate.SeverityCritical || alerts[0].TripCount != 2 {
+		t.Errorf("panel feed'i beklenmedik: %+v", alerts)
+	}
+	if alerts[0].Technique != gateway.TechniqueUnauthorizedAccess {
+		t.Errorf("technique = %q, istenen %q", alerts[0].Technique, gateway.TechniqueUnauthorizedAccess)
+	}
+
+	// Her iki cagri icin de imzali receipt kalici yazildi mi ve gercekten
+	// dogrulanabiliyor mu (fail-closed'in kanit tarafi).
+	receipts, err := s.ReceiptsByAgent(ctx, agentID, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(receipts) != 2 {
+		t.Fatalf("2 receipt bekleniyordu, geldi: %d", len(receipts))
+	}
+	for _, sr := range receipts {
+		if sr.Allowed {
+			t.Errorf("receipt Allowed=true olmamaliydi (cagri reddedildi): %+v", sr)
+		}
+		if err := receipt.Verify(signer.PublicKey(), sr); err != nil {
+			t.Errorf("receipt dogrulanamadi: %v (%+v)", err, sr)
+		}
+	}
+}
+
+// refusingTransport, gateway.New'e gecilen http.RoundTripper'dir. Bu
+// senaryoda TUM cagrilar allowlist disi oldugu icin gercek hedefe hic
+// gidilmemesi beklenir; RoundTrip cagrilirsa test patlar.
+type refusingTransport struct{}
+
+func (refusingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	panic("beklenmedik: allowlist disi cagri gercek hedefe iletildi: " + r.URL.String())
 }
 
 type staticNames struct{}
