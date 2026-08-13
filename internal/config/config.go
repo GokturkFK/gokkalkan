@@ -8,10 +8,10 @@ import (
 
 // Config, çekirdek boot için gereken minimum ayardır.
 type Config struct {
-	HTTPAddr      string
-	ProxyAddr     string
-	DBDSN         string
-	NATSURL       string
+	HTTPAddr       string
+	ProxyAddr      string
+	DBDSN          string
+	NATSURL        string
 	ReceiptSeedHex string
 }
 

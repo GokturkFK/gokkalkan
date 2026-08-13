@@ -102,7 +102,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if !res.Decision.Allowed {
 		h.recordDenial(r.Context(), r, res.Decision)
-		writeDenied(w, res.Decision.Reason)
+		h.writeDenied(w, res.Decision.Reason)
 		return
 	}
 
@@ -140,8 +140,10 @@ func (h *Handler) recordDenial(ctx context.Context, r *http.Request, dec proxy.D
 	}
 }
 
-func writeDenied(w http.ResponseWriter, reason string) {
+func (h *Handler) writeDenied(w http.ResponseWriter, reason string) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusForbidden)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": "reddedildi", "reason": reason})
+	if err := json.NewEncoder(w).Encode(map[string]string{"error": "reddedildi", "reason": reason}); err != nil {
+		h.logger.Error("yanit yazilamadi", "err", err)
+	}
 }
