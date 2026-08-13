@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/gokkalkan ./cmd/go
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/gokkalkan /gokkalkan
 USER nonroot:nonroot
-EXPOSE 8090
+EXPOSE 8090 8091
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=5 \
   CMD ["/gokkalkan", "healthcheck"]
 ENTRYPOINT ["/gokkalkan"]
