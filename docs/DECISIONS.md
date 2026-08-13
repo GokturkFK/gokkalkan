@@ -30,12 +30,28 @@ yolu var ve bunlar farklı adversary davranışlarını temsil ediyor:
 |---|---|---|
 | **GK-B**: agent honeypot tool'u çağırdı | **`AML.T0053`** — AI Agent Tool Invocation | ATLAS tanımı birebir: *"AI agents may be configured to have access to tools that are not directly accessible by users. Adversaries may abuse this to gain access to tools they otherwise wouldn't be able to use."* Gözlemlediğimiz şey tam olarak bu: agent'ın meşru işi olmayan bir tool'u çağırması. |
 | **GK-A2**: zehirli tool açıklaması tespit edildi | **`AML.T0110.000`** — AI Agent Tool Poisoning: Definition and Instructions | ATLAS tanımı: *"Adversaries may poison a tool's model-visible semantic interface, including its descriptions, schemas, parameter documentation, annotations, or agent-readable instructions."* Tool poisoning senaryosunun ders kitabı karşılığı. |
+| **gateway**: agent, allowlist'te olmayan bir host/path'e **doğrudan** bağlanmaya çalıştı (tool çağırmadan, honeypot'a hiç dokunmadan) | **`AML.T0053`** — aynı kod | Aşağıda gerekçelendirildi. |
 
 **Neden GK-B'ye `AML.T0110` değil de `AML.T0053`?** Tuzağı biz koyduk; ortada
 zehirlenmiş bir tool yok. Gözlemlenen olay, agent'ın yetkisi olmayan bir tool'u
 *çağırması*. GÖKTÜRK'teki mantığın aynısı: orada da alarmın tekniği kimliğin
 nasıl çalındığı (kök neden) değil, **çalınan kimlikle ne yapıldığı** (gözlenen
 davranış) üzerinden seçilmişti.
+
+**Neden gateway'in doğrudan-bağlantı senaryosu da `AML.T0053`?** (`internal/gateway/gateway.go`,
+`TechniqueUnauthorizedAccess`) Bu üçüncü senaryo GK-S0'da öngörülmemişti —
+gateway yazılırken (GKO-2 wiring) ortaya çıktı: agent bir tool çağırmıyor,
+doğrudan allowlist dışı bir host/path'e HTTP isteği yapıyor. ATLAS'ın resmî
+veri deposu (`mitre-atlas/atlas-data`) tarandı; "agent'ın tool çağırmadan,
+doğrudan yetkisiz bir ağ hedefine bağlanması" için ayrı bir teknik **yok**.
+En yakın adaylar da uymuyor: `AML.T0014` (Command and Control) zaten ele
+geçirilmiş bir sistemin C2 sunucusuyla iletişimini varsayar — burada henüz
+öyle bir varsayım yok, sadece allowlist ihlali gözlemleniyor. `AML.T0053`'ün
+tanımındaki temel unsur — *agent'ın erişimi/yetkisi olmayan bir kaynağı
+kullanmaya çalışması* — host/path düzeyinde de host'un kendisi "agent'a
+tanınmamış bir kaynak" olarak görülürse geçerli kalıyor. Bu yüzden aynı kod
+korundu; ATLAS'ta daha uygun bir ID eklenirse (yeni sürüm) bu karar
+güncellenir.
 
 ### İkincil eşlemeler (tehdit modeline, alarm alanına değil)
 
