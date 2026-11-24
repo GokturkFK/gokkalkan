@@ -98,6 +98,10 @@ make migrate-up
 make migrate-down
 ```
 
+### Branch & PR Rules
+
+Same as `gokturk-deception-mesh`: `main` is protected, PR + CI required, squash-only merges, force-push and branch deletion disabled. Work is tracked as [issues](../../issues) — `cyber` = [@fetihcakmak](https://github.com/fetihcakmak) (security core), `devops` = [@uzunkubra50](https://github.com/uzunkubra50) (platform/delivery/wiring). File ownership: [`CODEOWNERS`](CODEOWNERS).
+
 ---
 
 ## Göktürk Security Platform
