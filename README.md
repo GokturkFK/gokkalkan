@@ -2,16 +2,18 @@
 
 # GÖKKALKAN
 
-**Agentic AI Runtime Security — MCP Egress Proxy & Agent Honeypot Deception (Göktürk Platform P2)**
+**Ajan Tabanlı Yapay Zekâ Çalışma Zamanı Güvenliği — MCP Egress Proxy & Ajan Honeypot (Göktürk Platform P2)**
 
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Storage-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Depolama-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![MITRE ATLAS](https://img.shields.io/badge/Framework-MITRE%20ATLAS-C7252B?style=flat-square)](docs/THREAT_MODEL.md)
 [![OWASP](https://img.shields.io/badge/Standard-OWASP%20Agentic%20Top%2010-181717?style=flat-square)](docs/THREAT_MODEL.md)
-[![Status](https://img.shields.io/badge/Status-End--to--End%20Working-22c55e?style=flat-square)](PROJECT_PLAN.md)
+[![Status](https://img.shields.io/badge/Durum-U%C3%A7tan%20Uca%20%C3%87al%C4%B1%C5%9F%C4%B1yor-22c55e?style=flat-square)](PROJECT_PLAN.md)
 [![Org](https://img.shields.io/badge/Org-GokturkFK-0d1117?style=flat-square)](https://github.com/GokturkFK)
 
-*Block prompt-injected or tool-poisoned AI agents from reaching unauthorized endpoints at runtime, emit Critical SOC alerts + cryptographically signed action receipts, and let legitimate tool calls pass unobstructed.*
+*Zehirli bir araç açıklaması (tool poisoning) veya prompt injection ile yetkisiz bir uca bağlanmaya çalışan yapay zekâ ajanlarını çalışma zamanında kesin; Critical SOC alarmı ve kriptografik imzalı işlem makbuzu üretin — meşru çağrılar hiçbir engelle karşılaşmadan geçsin.*
+
+**🇹🇷 Türkçe** · [🇬🇧 English](#-english)
 
 </div>
 
@@ -19,102 +21,104 @@
 
 ## Demo
 
-![GÖKKALKAN live demo](docs/demo.gif)
+![GÖKKALKAN canlı demo](docs/demo.gif)
 
-*Recorded against a live `docker compose` stack (PostgreSQL + `gokkalkan`) following [`docs/demo-script.md`](docs/demo-script.md). Legitimate calls reach `api.github.com` and return `200 OK`; poisoned/unauthorized calls are intercepted and produce a Critical alert with a signed action receipt.*
-
----
-
-## Overview
-
-**GÖKKALKAN** is Pillar 2 (P2) of the Göktürk Security Platform, protecting **Model Context Protocol (MCP)** and autonomous AI agent runtimes against tool poisoning, prompt injection, and unauthorized egress.
-
-It imports [`gokturk-core`](https://github.com/GokturkFK/gokturk-core) directly—reusing the exact same `trap.Provider`/`TripEvent` wire contract and zero-FP `correlate.Evaluate` engine as [`gokturk-deception-mesh`](https://github.com/GokturkFK/gokturk-deception-mesh) and [`gokzincir`](https://github.com/GokturkFK/gokzincir).
-
-- Threat model & NSA MCP / OWASP Agentic Top 10 mapping: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
-- Architectural decisions: [`docs/DECISIONS.md`](docs/DECISIONS.md)
-- Project plan: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)
+*`docker compose` ile ayağa kaldırılmış canlı yığın (PostgreSQL + `gokkalkan`) üzerinde [`docs/demo-script.md`](docs/demo-script.md) adımları koşularak kaydedilmiştir. Meşru çağrı `api.github.com` adresine ulaşıp `200 OK` döner; yetkisiz/zehirli çağrı kesilir ve imzalı makbuzla birlikte Critical alarm üretir.*
 
 ---
 
-## Architecture
+## Genel Bakış
 
-```mermaid
-flowchart LR
-    Agent["AI Agent / MCP Client"] -->|"MCP / HTTP Call"| GW["internal/gateway<br/>Unified Request Pipeline"]
+**GÖKKALKAN**, Göktürk Güvenlik Platformu'nun 2. sütunudur (P2). **Model Context Protocol (MCP)** ve otonom yapay zekâ ajan çalışma ortamlarını tool-poisoning, prompt injection ve yetkisiz dış çıkış (egress) saldırılarına karşı korur.
 
-    GW --> Proxy["internal/proxy<br/>Deny-by-Default Allowlist"]
-    Proxy -->|"allowlisted"| Target["Legitimate Endpoint<br/>(e.g. api.github.com)"]
-    Proxy -->|"unlisted or decoy"| Honeypot["internal/honeypot<br/>Fake MCP Tool Provider + Decoder"]
-    GW -->|"scan tool metadata"| Detect["internal/detect<br/>Prompt-Injection & Tool-Poisoning"]
+[`gokturk-core`](https://github.com/GokturkFK/gokturk-core) paketini doğrudan import eder — [`gokturk-deception-mesh`](https://github.com/GokturkFK/gokturk-deception-mesh) ve [`gokzincir`](https://github.com/GokturkFK/gokzincir) ile birebir aynı `trap.Provider`/`TripEvent` sözleşmesini ve sıfır-FP `correlate.Evaluate` motorunu kullanır.
 
-    Honeypot -->|"TripEvent (AML.T0053)"| Core["gokturk-core<br/>correlate.Evaluate"]
-    Detect -->|"TripEvent (AML.T0110.000)"| Core
+- Tehdit modeli ve NSA MCP / OWASP Agentic Top 10 eşlemesi: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
+- Teknik kararlar: [`docs/DECISIONS.md`](docs/DECISIONS.md)
+- Proje planı: [`PROJECT_PLAN.md`](PROJECT_PLAN.md)
 
-    Core --> Alert["Alert<br/>High / Critical"]
-    Alert -->|"Critical"| Enforce["Runtime Enforcement<br/>Revoke Agent Identity"]
-    Alert --> Receipt["Signed Action Receipt<br/>Tamper-Evident Audit"]
-    Alert --> Panel["Unified SOC Feed<br/>GET /api/v1/alerts"]
+---
 
-    style Honeypot fill:#7f1d1d,color:#fff,stroke:#b91c1c
-    style Detect fill:#7f1d1d,color:#fff,stroke:#b91c1c
-    style Target fill:#14532d,color:#fff,stroke:#16a34a
-```
+## Çekirdek Paketler
 
-### Core Packages
-
-| Package | Responsibility | Contract |
+| Paket | Sorumluluk | Sözleşme |
 | :--- | :--- | :--- |
-| **`internal/gateway`** | Single request pipeline unifying proxy, detection, honeypot, correlation, enforcement, and receipts | End-to-end HTTP/MCP gateway |
-| **`internal/proxy`** | Deny-by-default egress allowlist enforcement (host, method, path-prefix) | Pure evaluator backed by `Store` interface |
-| **`internal/honeypot`** | Decoy MCP tool provisioning and invocation detection (`AML.T0053`) | `gokturk-core/trap.Provider`, `trap.Decoder` |
-| **`internal/detect`** | Tool-description scanning for prompt injection & tool poisoning (`AML.T0110.000`) | `gokturk-core/trap.Decoder` |
+| **`internal/gateway`** | Proxy, tespit, honeypot, korelasyon, enforcement ve imzalı makbuz adımlarını tek istek hattında birleştirir | Uçtan uca HTTP/MCP ağ geçidi |
+| **`internal/proxy`** | Varsayılan-reddet (deny-by-default) allowlist kararı (host, method, path-prefix) | `Store` arayüzü arkasında saf değerlendirici |
+| **`internal/honeypot`** | Sahte MCP aracı provision etme ve tetiklenme tespiti (`AML.T0053`) | `gokturk-core/trap.Provider`, `trap.Decoder` |
+| **`internal/detect`** | Araç açıklamalarında prompt-injection ve tool-poisoning taraması (`AML.T0110.000`) | `gokturk-core/trap.Decoder` |
 
 ---
 
-## Getting Started
+## Hızlı Başlangıç
 
-### Prerequisites
+### Gereksinimler
 
 - **Go 1.25+**
-- **Docker** & **Docker Compose v2+**
+- **Docker** ve **Docker Compose v2+**
 
-### Run the Stack
+### Yığını Ayağa Kaldırma
 
 ```sh
 cp deployments/docker/.env.example deployments/docker/.env
 make docker-up
 ```
 
-### Development, Testing & Migrations
+### Geliştirme, Test ve Migration
 
 ```sh
 make build
 make test
 make lint
 
-# Database migrations
+# Veritabanı migration'ları
 make migrate-up
 make migrate-down
 ```
 
-### Branch & PR Rules
+### Branch & PR Kuralları
 
-Same as `gokturk-deception-mesh`: `main` is protected, PR + CI required, squash-only merges, force-push and branch deletion disabled. Work is tracked as [issues](../../issues) — `cyber` = [@fetihcakmak](https://github.com/fetihcakmak) (security core), `devops` = [@uzunkubra50](https://github.com/uzunkubra50) (platform/delivery/wiring). File ownership: [`CODEOWNERS`](CODEOWNERS).
+`gokturk-deception-mesh` ile aynıdır: `main` korumalıdır, PR + yeşil CI zorunludur, yalnızca squash merge açıktır. Görevler [issues](../../issues) altında izlenir (`cyber` = [@fetihcakmak](https://github.com/fetihcakmak), `devops` = [@uzunkubra50](https://github.com/uzunkubra50)); dosya sahipliği: [`CODEOWNERS`](CODEOWNERS).
 
 ---
 
-## Göktürk Security Platform
+## Göktürk Güvenlik Platformu
 
-| Pillar | Repository | Focus |
+| Katman | Depo | Odak |
 | :---: | :--- | :--- |
-| **Core** | [**`gokturk-core`**](https://github.com/GokturkFK/gokturk-core) | Frozen `trap` wire contract & deterministic `correlate` engine |
-| **P1** | [**`gokturk-deception-mesh`**](https://github.com/GokturkFK/gokturk-deception-mesh) | Credential canaries, SSH sensor, NATS JetStream & unified SOC dashboard |
-| **P2** | **`gokkalkan`** *(this repo)* | Agentic AI runtime security — MCP egress proxy & agent honeypot |
-| **P3** | [**`gokzincir`**](https://github.com/GokturkFK/gokzincir) | Non-Human Identity (NHI) governance & blast-radius graph |
+| **Çekirdek** | [**`gokturk-core`**](https://github.com/GokturkFK/gokturk-core) | Dondurulmuş `trap` sözleşmesi & belirlenimci `correlate` motoru |
+| **P1** | [**`gokturk-deception-mesh`**](https://github.com/GokturkFK/gokturk-deception-mesh) | Kimlik kanaryaları, SSH sensörü, NATS JetStream & birleşik SOC paneli |
+| **P2** | **`gokkalkan`** *(bu depo)* | Ajan tabanlı yapay zekâ güvenliği — MCP egress proxy & ajan honeypot |
+| **P3** | [**`gokzincir`**](https://github.com/GokturkFK/gokzincir) | İnsan-olmayan kimlik (NHI) yönetişimi & blast-radius grafiği |
+
+---
+
+<a id="-english"></a>
+
+<details>
+<summary><b>🇬🇧 English</b> — click to expand</summary>
+
+<br/>
+
+## Overview
+
+**GÖKKALKAN** (Pillar 2 of the Göktürk Security Platform) provides **Agentic AI Runtime Security** for MCP and autonomous AI agents—combining a deny-by-default egress proxy (`internal/proxy`), decoy MCP honeypot tools (`internal/honeypot`, `AML.T0053`), prompt-injection/tool-poisoning scanning (`internal/detect`, `AML.T0110.000`), runtime enforcement, and cryptographically signed action receipts inside a unified `internal/gateway` pipeline.
+
+It imports [`gokturk-core`](https://github.com/GokturkFK/gokturk-core) directly for zero-FP correlation and unified SOC alert federation.
+
+## Quickstart
+
+```sh
+cp deployments/docker/.env.example deployments/docker/.env
+make docker-up
+```
+
+See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) and [`docs/DECISIONS.md`](docs/DECISIONS.md) for threat modeling and architectural decisions.
+
+</details>
 
 ---
 
 <div align="center">
-  <sub>Developed by <a href="https://github.com/GokturkFK">GokturkFK</a> · Security Kernel: <a href="https://github.com/fetihcakmak">@fetihcakmak</a> · Platform/DevOps: <a href="https://github.com/uzunkubra50">@uzunkubra50</a></sub>
+  <sub><a href="https://github.com/GokturkFK">GokturkFK</a> · Güvenlik Çekirdeği: <a href="https://github.com/fetihcakmak">@fetihcakmak</a> · Platform/DevOps: <a href="https://github.com/uzunkubra50">@uzunkubra50</a></sub>
 </div>
